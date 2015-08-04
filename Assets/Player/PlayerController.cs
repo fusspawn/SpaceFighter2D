@@ -14,12 +14,21 @@ public class PlayerController
     public float TurnSpeed;
     [SyncVar]
     public float DragRate;
+    [SyncVar]
+    public float FireRate = 0.5f;
+    [SyncVar]
+    public float ShotSpeed = 10;
 
+    public float LastShot = 0;
+
+    public GameObject ProjectilePrefab;
     Rigidbody2D Body;
 
 	// Use this for initialization
 	void Start () {
         Body = GetComponent<Rigidbody2D>();
+        if (isLocalPlayer)
+            GameObject.Find("MainCamera").GetComponent<FollowPlayerShip>().Player = gameObject;
 	}
 	
 	// Update is called once per frame
@@ -27,12 +36,27 @@ public class PlayerController
     {
         if (isLocalPlayer)
         {
-            Cmd_ProcessRotation(Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.D));
-            Cmd_ProcessThrust(Input.GetKey(KeyCode.W));
+            Cmd_ProcessMovement(Input.GetKey(KeyCode.A),
+                Input.GetKey(KeyCode.D),
+                Input.GetKey(KeyCode.W));
+
+            Cmd_ProcessShoot(Input.GetKey(KeyCode.Space));
         }
 	}
 
-    [Command]    
+    private void Cmd_ProcessShoot(bool v)
+    {
+        if (v && LastShot >= FireRate) {
+            LastShot = 0;
+
+            GameObject BulletInstance = (GameObject)Instantiate(ProjectilePrefab,  transform.position + transform.up * 2, Quaternion.identity);
+            BulletInstance.GetComponent<Rigidbody2D>().AddForce(transform.up * ShotSpeed);
+            NetworkServer.Spawn(BulletInstance);
+        }
+
+        LastShot += Time.deltaTime;
+    }
+
     private void Cmd_ProcessThrust(bool thrust)
     {        
         if (thrust)
@@ -52,12 +76,17 @@ public class PlayerController
         }
     }
 
-    [Command]
     private void Cmd_ProcessRotation(bool left, bool right)
     {
         if (right)
             Body.AddTorque(-TurnSpeed);
         else if (left)
             Body.AddTorque(TurnSpeed);
+    }
+
+    [Command]
+    private void Cmd_ProcessMovement(bool left, bool right, bool forward) {
+        Cmd_ProcessRotation(left, right);
+        Cmd_ProcessThrust(forward);
     }
 }
