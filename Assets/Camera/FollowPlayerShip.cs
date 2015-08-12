@@ -11,7 +11,7 @@ public class FollowPlayerShip
     {
         if (Player != null)
         {
-            Vector3 Pos = Vector3.Lerp(transform.position, Player.transform.position, MoveSpeed * Time.deltaTime);
+            Vector3 Pos = Player.transform.position;
             Pos.z = -10;
             transform.position = Pos;
         }
